@@ -82,7 +82,7 @@ def BitFlip(x, prob=0.05):
 
 #Training
 
-def Train_steps(dataset):
+def Train_steps(dataset, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights, optimizer_discriminator, optimizer_generator):
     # Get a single batch    
     image_batch = dataset.get('X')#.numpy()
     energy_batch = dataset.get('Y')#.numpy()
@@ -153,7 +153,7 @@ def Train_steps(dataset):
     return real_batch_loss[0], real_batch_loss[1], real_batch_loss[2], real_batch_loss[3], fake_batch_loss[0], fake_batch_loss[1], fake_batch_loss[2], fake_batch_loss[3], \
             gen_losses[0], gen_losses[1], gen_losses[2], gen_losses[3], gen_losses[4], gen_losses[5], gen_losses[6], gen_losses[7]   
 
-def Test_steps(dataset):    
+def Test_steps(dataset, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights):    
     # Get a single batch    
     image_batch = dataset.get('X')#.numpy()
     energy_batch = dataset.get('Y')#.numpy()
@@ -193,13 +193,13 @@ def Test_steps(dataset):
 
 
 @tf.function
-def distributed_train_step(dataset):
+def distributed_train_step(strategy, dataset, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights, optimizer_discriminator, optimizer_generator):
 
     gen_losses = []
     real_batch_loss_1, real_batch_loss_2, real_batch_loss_3, real_batch_loss_4, \
     fake_batch_loss_1, fake_batch_loss_2, fake_batch_loss_3, fake_batch_loss_4, \
     gen_batch_loss_1, gen_batch_loss_2, gen_batch_loss_3, gen_batch_loss_4, \
-    gen_batch_loss_5, gen_batch_loss_6, gen_batch_loss_7, gen_batch_loss_8  = strategy.run(Train_steps, args=(next(dataset),))
+    gen_batch_loss_5, gen_batch_loss_6, gen_batch_loss_7, gen_batch_loss_8  = strategy.run(Train_steps, args=(next(dataset), generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights, optimizer_discriminator, optimizer_generator))
     
     real_batch_loss_1 = strategy.reduce(tf.distribute.ReduceOp.SUM, real_batch_loss_1, axis=None)
     real_batch_loss_2 = strategy.reduce(tf.distribute.ReduceOp.SUM, real_batch_loss_2, axis=None)
@@ -234,9 +234,9 @@ def distributed_train_step(dataset):
 
 
 @tf.function
-def distributed_test_step(dataset):
+def distributed_test_step(strategy, dataset, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights):
     disc_test_loss_1, disc_test_loss_2, disc_test_loss_3, disc_test_loss_4, \
-    gen_test_loss_1, gen_test_loss_2, gen_test_loss_3, gen_test_loss_4 = strategy.run(Test_steps, args=(next(dataset),))
+    gen_test_loss_1, gen_test_loss_2, gen_test_loss_3, gen_test_loss_4 = strategy.run(Test_steps, args=(next(dataset), generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights))
 
     disc_test_loss_1 = strategy.reduce(tf.distribute.ReduceOp.SUM, disc_test_loss_1, axis=None)
     disc_test_loss_2 = strategy.reduce(tf.distribute.ReduceOp.SUM, disc_test_loss_2, axis=None)

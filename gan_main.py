@@ -46,11 +46,11 @@ def get_parser():
     parser.add_argument('--use_gs', action='store', default=False)
     # parser.add_argument('--datapath', action='store', default='')
     # parser.add_argument('--outpath', action='store', default='')
-    parser.add_argument('--datapath', action='store', default = '/eos/user/r/redacost/tfrecords/*.tfrecords',help = 'Data path')
+    parser.add_argument('--datapath', action='store', default = '/eos/user/r/redacost/tfrecordsprepro/*.tfrecords',help = 'Data path')
     parser.add_argument('--outpath', action='store', default = '/eos/user/r/redacost/tfresults/', help = 'training output')
     parser.add_argument('--nbepochs', action='store', type=int, default=60, help='Number of epochs to train for.')
     parser.add_argument('--batchsize', action='store', type=int, default=64, help='batch size per update')
-    parser.add_argument('--use_gpus', action='store', default=False, help='Use gpus for training')
+    parser.add_argument('--use_gpus', action='store', default=True, help='Use gpus for training')
     parser.add_argument('--GLOBAL_BATCH_SIZE', action='store', default= 64)
     parser.add_argument('--nb_epochs', action='store', default = 60, help='Total Epochs')
     parser.add_argument('--batch_size', action='store', default = 64)
@@ -296,13 +296,13 @@ def main_gan():
             
             #Discriminator Training
             if use_gpus:
-                real_batch_loss, fake_batch_loss, gen_losses = distributed_train_step(dist_dataset_iter)
+                real_batch_loss, fake_batch_loss, gen_losses = distributed_train_step(strategy, dist_dataset_iter, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights, optimizer_discriminator, optimizer_generator)
             else:
                 gen_losses = []
                 real_batch_loss_1, real_batch_loss_2, real_batch_loss_3, real_batch_loss_4, \
                 fake_batch_loss_1, fake_batch_loss_2, fake_batch_loss_3, fake_batch_loss_4, \
                 gen_batch_loss_1, gen_batch_loss_2, gen_batch_loss_3, gen_batch_loss_4, \
-                gen_batch_loss_5, gen_batch_loss_6, gen_batch_loss_7, gen_batch_loss_8  = Train_steps(next(dist_dataset_iter))
+                gen_batch_loss_5, gen_batch_loss_6, gen_batch_loss_7, gen_batch_loss_8  = Train_steps(next(dist_dataset_iter), generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights, optimizer_discriminator, optimizer_generator)
                 real_batch_loss = [real_batch_loss_1, real_batch_loss_2, real_batch_loss_3, real_batch_loss_4]
                 fake_batch_loss = [fake_batch_loss_1, fake_batch_loss_2, fake_batch_loss_3, fake_batch_loss_4]
                 gen_batch_loss = [gen_batch_loss_1, gen_batch_loss_2, gen_batch_loss_3, gen_batch_loss_4]
@@ -391,10 +391,10 @@ def main_gan():
             this_batch_size = 128 #can be removed (should)
 
             if use_gpus:
-                disc_eval_loss, gen_eval_loss = distributed_test_step(test_dist_dataset_iter)
+                disc_eval_loss, gen_eval_loss = distributed_test_step(strategy, test_dist_dataset_iter, generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights)
             else:
                 disc_test_loss_1, disc_test_loss_2, disc_test_loss_3, disc_test_loss_4, \
-                gen_test_loss_1, gen_test_loss_2, gen_test_loss_3, gen_test_loss_4 = Test_steps(next(test_dist_dataset_iter))
+                gen_test_loss_1, gen_test_loss_2, gen_test_loss_3, gen_test_loss_4 = Test_steps(next(test_dist_dataset_iter), generator, discriminator, latent_size, batch_size_per_replica, batch_size, loss_weights)
 
                 disc_test_loss = [disc_test_loss_1, disc_test_loss_2, disc_test_loss_3, disc_test_loss_4]
                 gen_test_loss = [gen_test_loss_1, gen_test_loss_2, gen_test_loss_3, gen_test_loss_4]

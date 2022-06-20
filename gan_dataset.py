@@ -132,10 +132,8 @@ def RetrieveTFRecord(recorddatapaths):
     return dataset
 
 def RetrieveTFRecordpreprocessing(recorddatapaths, batch_size):
-    recorddata = tf.data.TFRecordDataset(recorddatapaths)
-
-    #ds_size = sum(1 for _ in recorddata)
-
+    recorddata = tf.data.TFRecordDataset(recorddatapaths, num_parallel_reads=tf.data.experimental.AUTOTUNE)
+    #recorddata = tf.data.TFRecordDataset(recorddatapaths)
     
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
@@ -160,7 +158,10 @@ def RetrieveTFRecordpreprocessing(recorddatapaths, batch_size):
         #print(tf.shape(data['Y']))
         return data
 
-    parsed_dataset = recorddata.map(_parse_function).batch(batch_size, drop_remainder=True).repeat().with_options(options)
+
+    parsed_dataset = recorddata.map(_parse_function).repeat().batch(batch_size, drop_remainder=True).with_options(options)
+
+
 
     return parsed_dataset
     #return parsed_dataset, ds_size
